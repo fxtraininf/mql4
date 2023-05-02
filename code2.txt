@@ -1,0 +1,79 @@
+#property indicator_chart_window
+#property indicator_buffers 2
+#property indicator_color1 Green
+#property indicator_color2 Red
+double support[];
+double resistance[];
+int init() {
+    int i;
+    for (i = 0; i < 1000; i++) {
+        support[i] = 0.0;
+        resistance[i] = 0.0;
+    }
+    SetIndexBuffer(0, resistance);
+    SetIndexBuffer(1, support);
+    return(0);
+    }
+    
+int start() {
+    int i, counted_bars = IndicatorCounted();
+    double low1, low2, high1, high2, close1, close2, close3;
+    if (counted_bars < 1) counted_bars = 1;
+    int limit = Bars - counted_bars;
+    for (i = limit; i >= 0; i--) {
+        low1 = Low[i+1];
+        low2 = Low[i+2];
+        high1 = High[i+1];
+        high2 = High[i+2];
+        close1 = Close[i+1];
+        close2 = Close[i+2];
+        close3 = Close[i+3];
+        if ((close2 > close1) && (close3 < close2) && (high1 > high2)) {
+            resistance[i] = high1;
+            support[i] = 0.0;
+        } else if ((close2 < close1) && (close3 > close2) && (low1 < low2)) {
+            support[i] = low1;
+            resistance[i] = 0.0;
+        } else {
+            support[i] = 0.0;
+            resistance[i] = 0.0;
+        }
+    }
+    for (i = limit; i < Bars; i++) {
+        if (Close[i] > resistance[i]) {
+            resistance[i+1] = 0.0;
+        } else if (Close[i] < support[i]) {
+            support[i+1] = 0.0;
+        }
+    }
+    PlotIndicator(limit);
+    return(0);
+}
+void PlotIndicator(int start) {
+    int i, shift;
+    double price;
+    for (i = 0, shift = start; i < 1000; i++, shift++) {
+        if (resistance[i] != 0.0) {
+            price = resistance[i];
+            if (i == 0) {
+                ObjectCreate("resistance", OBJ_HLINE, 0, Time[shift], price);
+            } else if (resistance[i-1] == 0.0) {
+                ObjectCreate("resistance", OBJ_HLINE, 0, Time[shift], price);
+            } else {
+                ObjectMove("resistance", 0, Time[shift], price);
+            }
+            PlotIndexSetDouble(0, i, price);
+        }
+        if (support[i] != 0.0) {
+            price = support[i];
+            if (i == 0) {
+                ObjectCreate("support", OBJ_HLINE, 0, Time[shift], price);
+            } else if (support[i-1] == 0.0) {
+                ObjectCreate("support", OBJ_HLINE, 0, Time[shift], price);
+            } else {
+                ObjectMove("support", 0, Time[shift], price);
+            }
+            PlotIndexSetDouble(1, i, price);
+        }
+    }
+}
