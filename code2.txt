@@ -4,55 +4,38 @@
 #property indicator_color2 Red
 double support[];
 double resistance[];
+
 int init() {
+    SetIndexBuffer(0, resistance);
+    SetIndexBuffer(1, support);
+
     int i;
     for (i = 0; i < 1000; i++) {
         support[i] = 0.0;
         resistance[i] = 0.0;
     }
-    SetIndexBuffer(0, resistance);
-    SetIndexBuffer(1, support);
-    return(0);
-    }
-    
-int start() {
-    int i, counted_bars = IndicatorCounted();
-    double low1, low2, high1, high2, close1, close2, close3;
-    if (counted_bars < 1) counted_bars = 1;
-    int limit = Bars - counted_bars;
-    for (i = limit; i >= 0; i--) {
-        low1 = Low[i+1];
-        low2 = Low[i+2];
-        high1 = High[i+1];
-        high2 = High[i+2];
-        close1 = Close[i+1];
-        close2 = Close[i+2];
-        close3 = Close[i+3];
-        if ((close2 > close1) && (close3 < close2) && (high1 > high2)) {
-            resistance[i] = high1;
-            support[i] = 0.0;
-        } else if ((close2 < close1) && (close3 > close2) && (low1 < low2)) {
-            support[i] = low1;
-            resistance[i] = 0.0;
-        } else {
-            support[i] = 0.0;
-            resistance[i] = 0.0;
-        }
-    }
-    for (i = limit; i < Bars; i++) {
-        if (Close[i] > resistance[i]) {
-            resistance[i+1] = 0.0;
-        } else if (Close[i] < support[i]) {
-            support[i+1] = 0.0;
-        }
-    }
-    PlotIndicator(limit);
+
+    PlotIndicator(0, Bars - 1);
     return(0);
 }
-void PlotIndicator(int start) {
+
+int start() {
+    PlotIndicator(0, Bars - 1);
+    return(0);
+}
+
+void PlotIndicator(int start, int end) {
     int i, shift;
     double price;
-    for (i = 0, shift = start; i < 1000; i++, shift++) {
+    for (i = start, shift = Bars - start - 1; i <= end; i++, shift--) {
+        if (i == 0) {
+            resistance[i] = High[i];
+            support[i] = Low[i];
+        } else {
+            resistance[i] = MathMax(High[i], resistance[i-1]);
+            support[i] = MathMin(Low[i], support[i-1]);
+        }
+
         if (resistance[i] != 0.0) {
             price = resistance[i];
             if (i == 0) {
@@ -64,6 +47,7 @@ void PlotIndicator(int start) {
             }
             PlotIndexSetDouble(0, i, price);
         }
+
         if (support[i] != 0.0) {
             price = support[i];
             if (i == 0) {
